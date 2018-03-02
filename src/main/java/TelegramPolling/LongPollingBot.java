@@ -10,7 +10,7 @@ import java.util.List;
 public class LongPollingBot extends TelegramLongPollingBot {
 
     public String getBotToken() {
-        return "566645248:AAHZc8KLccbnhiuS8FZPXtFSCcJ-G78GuBA";
+        return "";
     }
 
     public void onUpdateReceived(Update update) {
