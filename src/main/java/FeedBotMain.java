@@ -18,7 +18,6 @@ public class FeedBotMain{
 
         ApiContextInitializer.init();
 
-//        LongPollingBot bot = new LongPollingBot();
 //        SendMessage message = new SendMessage() // Create a SendMessage object with mandatory fields
 //                .setChatId("447198168")
 //                .setText("Hi");
