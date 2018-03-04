@@ -9,8 +9,14 @@ import java.util.List;
 
 public class LongPollingBot extends TelegramLongPollingBot {
 
+    private String m_Token;
+
     public String getBotToken() {
-        return "";
+        return m_Token;
+    }
+
+    public void setToken(String _Token) {
+        m_Token = _Token;
     }
 
     public void onUpdateReceived(Update update) {

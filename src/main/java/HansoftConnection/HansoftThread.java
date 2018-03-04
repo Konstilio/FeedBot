@@ -27,9 +27,14 @@ public class HansoftThread extends Thread {
     long m_NextConnectionAttempt;
     HansoftCallback m_Callback;
     boolean m_bBrokenConnection;
-    volatile boolean m_bStop;
 
-    public HansoftThread()
+    String m_Host;
+    Integer m_Port;
+    String m_Database;
+    String m_SDK;
+    String m_SDKPassword;
+
+    public HansoftThread(String _Host, Integer _Port, String _Database, String _SDK, String _Password)
     {
         m_Session = null;
         m_Callback = new HansoftCallback(this, m_Session);
@@ -37,6 +42,12 @@ public class HansoftThread extends Thread {
         m_NextUpdate = 0;
         m_NextConnectionAttempt = 0;
         m_bBrokenConnection = false;
+
+        m_Host = _Host;
+        m_Port = _Port;
+        m_Database = _Database;
+        m_SDK = _SDK;
+        m_SDKPassword = _Password;
     }
 
     boolean initConnection()
@@ -54,7 +65,8 @@ public class HansoftThread extends Thread {
             try
             {
                 // You should change these parameters to match your development server and the SDK account you have created. For more information see SDK documentation.
-                m_Session = HPMSdkSession.SessionOpen("localhost", 50256, "Company Projects", "SDK", "SDK", m_Callback, null, true, debugMode, 0, "", "./HansoftSDK/Win", null);
+                m_Session = HPMSdkSession.SessionOpen(m_Host, m_Port, m_Database, m_SDK, m_SDKPassword, m_Callback
+                        , null, true, debugMode, 0, "", "./HansoftSDK/Win", null);
             }
             catch (HPMSdkException _Error)
             {
@@ -217,6 +229,7 @@ public class HansoftThread extends Thread {
             }
             catch (InterruptedException e)
             {
+                System.out.print("Hansoft thread interupted");
                 return;
             }
         }
