@@ -2,8 +2,6 @@ package HansoftConnection;
 
 import se.hansoft.hpmsdk.*;
 
-import javax.jws.soap.SOAPBinding;
-
 class HansoftCallback extends HPMSdkCallbacks {
     HansoftThread m_Program;
     HPMSdkSession m_Session;
