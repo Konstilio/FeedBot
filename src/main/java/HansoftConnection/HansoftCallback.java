@@ -27,18 +27,21 @@ class HansoftCallback extends HPMSdkCallbacks {
             if (!m_Program.getSession().TaskGetFullyCreated(_Data.m_TaskID))
                 return;
 
+            // #TODO: Refactor this
             StringBuilder Builder = new StringBuilder();
-            Builder.append("**");
+            Builder.append("<b>");
             Builder.append(GetUserName(_Data.m_ChangedByResourceID));
-            Builder.append("**");
+            Builder.append("</b>");
             Builder.append(' ');
             Builder.append(GetAction(_Data.m_FieldChanged));
-            Builder.append("**");
+            Builder.append("<b>");
             Builder.append(GetTaskText(_Data.m_TaskID, IsShowTaskName(_Data.m_FieldChanged)));
-            Builder.append("**");
+            Builder.append("</b>");
             Builder.append(' ');
             Builder.append(GetValuePrefix(_Data.m_FieldChanged));
+            Builder.append("<b>");
             Builder.append(GetTaskData(_Data.m_TaskID, _Data.m_FieldChanged));
+            Builder.append("</b>");
 
             m_Program.onNewsFeed(Builder.toString());
 
@@ -146,12 +149,14 @@ class HansoftCallback extends HPMSdkCallbacks {
                 return "";
             case BacklogPriority:
             {
-                HPMUntranslatedString Untranslated = m_Program.getSession().UtilGetColumnDataItemFormatted(ProjectID, EHPMProjectDefaultColumn.BacklogPriority, 0);
+                EHPMTaskAgilePriorityCategory Priority = m_Program.getSession().TaskGetBacklogPriority(_TaskID);
+                HPMUntranslatedString Untranslated = m_Program.getSession().UtilGetColumnDataItemFormatted(ProjectID, EHPMProjectDefaultColumn.BacklogPriority, Priority.getValue());
                 return m_Program.getSession().LocalizationTranslateString(m_Program.getSession().LocalizationGetDefaultLanguage(), Untranslated);
             }
             case SprintPriority:
             {
-                HPMUntranslatedString Untranslated = m_Program.getSession().UtilGetColumnDataItemFormatted(ProjectID, EHPMProjectDefaultColumn.SprintPriority, 0);
+                EHPMTaskAgilePriorityCategory Priority = m_Program.getSession().TaskGetSprintPriority(_TaskID);
+                HPMUntranslatedString Untranslated = m_Program.getSession().UtilGetColumnDataItemFormatted(ProjectID, EHPMProjectDefaultColumn.SprintPriority, Priority.getValue());
                 return m_Program.getSession().LocalizationTranslateString(m_Program.getSession().LocalizationGetDefaultLanguage(), Untranslated);
             }
             case Description:

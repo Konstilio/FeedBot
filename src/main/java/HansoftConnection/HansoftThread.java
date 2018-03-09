@@ -122,11 +122,11 @@ public class HansoftThread extends Thread {
 
         HashSet<Long> Chats = m_State.getChats();
         for( Long ChatID : Chats) {
-            SendMessage Message = new SendMessage().setChatId(ChatID).setText(message);
+            SendMessage Message = new SendMessage().setChatId(ChatID).setText(message).setParseMode("html");
             try {
                 m_SendBot.execute(Message); // Call method to send the message
             } catch (TelegramApiException e) {
-                System.out.println("onNewsFeed: Failed to send message");
+                System.out.println("onNewsFeed: Failed to send message: message");
                 e.printStackTrace();
             }
         }
