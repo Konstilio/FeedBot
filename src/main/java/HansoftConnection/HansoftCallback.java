@@ -3,15 +3,13 @@ package HansoftConnection;
 import se.hansoft.hpmsdk.*;
 
 class HansoftCallback extends HPMSdkCallbacks {
-    HansoftThread m_Program;
-    HPMSdkSession m_Session;
+    protected HansoftThread m_Program;
 
-    HansoftCallback(HansoftThread _Program, HPMSdkSession _Session) {
+    HansoftCallback(HansoftThread _Program) {
         m_Program = _Program;
-        m_Session = _Session;
     }
 
-    @Override
+     @Override
     public void On_ProcessError(EHPMError _Error)
     {
         System.out.println(HPMSdkSession.ErrorAsStr(_Error) + "\r\n");
@@ -26,12 +24,23 @@ class HansoftCallback extends HPMSdkCallbacks {
 
         try {
 
-            if (!m_Session.TaskGetFullyCreated(_Data.m_TaskID))
+            if (!m_Program.getSession().TaskGetFullyCreated(_Data.m_TaskID))
                 return;
 
-            HPMUniqueID ProjectID = m_Session.TaskGetContainer(_Data.m_TaskID);
+            StringBuilder Builder = new StringBuilder();
+            Builder.append("**");
+            Builder.append(GetUserName(_Data.m_ChangedByResourceID));
+            Builder.append("**");
+            Builder.append(' ');
+            Builder.append(GetAction(_Data.m_FieldChanged));
+            Builder.append("**");
+            Builder.append(GetTaskText(_Data.m_TaskID, IsShowTaskName(_Data.m_FieldChanged)));
+            Builder.append("**");
+            Builder.append(' ');
+            Builder.append(GetValuePrefix(_Data.m_FieldChanged));
+            Builder.append(GetTaskData(_Data.m_TaskID, _Data.m_FieldChanged));
 
-            String UserName = GetUserName(_Data.m_ChangedByResourceID);
+            m_Program.onNewsFeed(Builder.toString());
 
         } catch (HPMSdkException _Error) {
             System.out.println("HPMSdkException in On_TaskChange: " + _Error.ErrorAsStr());
@@ -46,7 +55,7 @@ class HansoftCallback extends HPMSdkCallbacks {
         {
             case Status:
             case WorkflowStatus:
-            case Comment:
+            //case Comment:
             case BacklogPriority:
             case SprintPriority:
             case Description:
@@ -57,11 +66,35 @@ class HansoftCallback extends HPMSdkCallbacks {
         }
     }
 
+    private boolean IsShowTaskName(EHPMTaskField _Field) {
+        switch (_Field) {
+            case Description:
+            case Comment:
+                return false;
+            default:
+                return true;
+        }
+    }
+
     private String GetUserName(HPMUniqueID _UsedID) throws HPMSdkException, HPMSdkJavaException
     {
-        HPMResourceProperties UserInfo = m_Session.ResourceGetProperties(_UsedID);
+        HPMResourceProperties UserInfo = m_Program.getSession().ResourceGetProperties(_UsedID);
         return UserInfo.m_Name;
 
+    }
+
+    private String GetAction(EHPMTaskField _Field) throws HPMSdkException, HPMSdkJavaException {
+        if (_Field == EHPMTaskField.Comment)
+            return "commented on ";
+
+        return "changed " + GetFieldName(_Field) + " on ";
+    }
+
+    private String GetValuePrefix(EHPMTaskField _Field) {
+        if (_Field == EHPMTaskField.Comment)
+            return " ";
+
+        return "new value is ";
     }
 
     private String GetFieldName(EHPMTaskField _Field) throws HPMSdkException, HPMSdkJavaException {
@@ -70,51 +103,83 @@ class HansoftCallback extends HPMSdkCallbacks {
                 HPMTaskField TaskField = new HPMTaskField();
                 TaskField.m_FieldID = _Field;
 
-                HPMColumn Column = m_Session.UtilTaskFieldToColumn(TaskField);
-                HPMUntranslatedString Untranslated = m_Session.UtilGetColumnName(EHPMProjectDefaultColumn.Status);
-                return m_Session.LocalizationTranslateString(m_Session.LocalizationGetDefaultLanguage(), Untranslated);
+                HPMColumn Column = m_Program.getSession().UtilTaskFieldToColumn(TaskField);
+                EHPMProjectDefaultColumn DefaultColumn  = EHPMProjectDefaultColumn.values()[Column.m_ColumnID];
+                HPMUntranslatedString Untranslated = m_Program.getSession().UtilGetColumnName(DefaultColumn);
+                return m_Program.getSession().LocalizationTranslateString(m_Program.getSession().LocalizationGetDefaultLanguage(), Untranslated);
             }
         }
     }
 
     private String GetTaskData(HPMUniqueID _TaskID, EHPMTaskField _Field) throws HPMSdkException, HPMSdkJavaException {
+
+        HPMUniqueID ProjectID = m_Program.getSession().TaskGetContainer(_TaskID);
+
         switch(_Field)
         {
             case Status:
             {
-                EHPMTaskStatus Status = m_Session.TaskGetStatus(_TaskID);
-                switch (Status)
-                {
-                    case NoStatus:
-                        return "";
-                    case Blocked:
-                        return "Blocked";
-                    case NotDone:
-                        return "Not Done";
-                    case Deleted:
-                        return "To be deleted";
-                    case Completed:
-                        return "Completed";
-                    case InProgress:
-                        return "In Progress";
-                    case NewVersionOfSDKRequired:
-                    {
-                        System.out.println("GetTaskData EHPMTaskStatus: new Version of SDK required");
-                        return "";
-                    }
-                    default:
-                        return "";
-                }
+                EHPMTaskStatus Status = m_Program.getSession().TaskGetStatus(_TaskID);
+                HPMUntranslatedString Untranslated = m_Program.getSession().UtilGetColumnDataItemFormatted(ProjectID, EHPMProjectDefaultColumn.ItemStatus, Status.getValue());
+                return m_Program.getSession().LocalizationTranslateString(m_Program.getSession().LocalizationGetDefaultLanguage(), Untranslated);
             }
             case WorkflowStatus:
+            {
+                // #TODO: Cache?
+                int WorflowID = m_Program.getSession().TaskGetWorkflow(_TaskID);
+                int WorkflowStatus = m_Program.getSession().TaskGetWorkflowStatus(_TaskID);
+                HPMUniqueID RealProjectID = m_Program.getSession().UtilGetRealProjectIDFromProjectID(ProjectID);
+                HPMProjectWorkflowSettings Settings = m_Program.getSession().ProjectWorkflowGetSettings(RealProjectID, WorflowID);
+
+                if (Settings.m_Properties.m_WorkflowType != EHPMWorkflowType.Workflow)
+                    return "Unknown";
+
+                for (HPMProjectWorkflowObject WfObj : Settings.m_WorkflowObjects)
+                {
+                    if (WfObj.m_ObjectType == EHPMProjectWorkflowObjectType.WorkflowStatus && WfObj.m_ObjectID == WorkflowStatus)
+                        return m_Program.getSession().LocalizationTranslateString(m_Program.getSession().LocalizationGetDefaultLanguage(), WfObj.m_WorkflowStatus_Name);
+                }
+
+                return "Unknown";
+            }
             case Comment:
-            case BacklogPriority:
-            case SprintPriority:
-            case Description:
                 return "";
+            case BacklogPriority:
+            {
+                HPMUntranslatedString Untranslated = m_Program.getSession().UtilGetColumnDataItemFormatted(ProjectID, EHPMProjectDefaultColumn.BacklogPriority, 0);
+                return m_Program.getSession().LocalizationTranslateString(m_Program.getSession().LocalizationGetDefaultLanguage(), Untranslated);
+            }
+            case SprintPriority:
+            {
+                HPMUntranslatedString Untranslated = m_Program.getSession().UtilGetColumnDataItemFormatted(ProjectID, EHPMProjectDefaultColumn.SprintPriority, 0);
+                return m_Program.getSession().LocalizationTranslateString(m_Program.getSession().LocalizationGetDefaultLanguage(), Untranslated);
+            }
+            case Description:
+                return m_Program.getSession().TaskGetDescription(_TaskID);
             default:
                 return "";
 
         }
+    }
+
+    private String GetTaskText(HPMUniqueID _TaskID, boolean _bShowName) throws HPMSdkException, HPMSdkJavaException {
+        HPMUniqueID ProjectID = m_Program.getSession().TaskGetContainer(_TaskID);
+        HPMProjectProperties Properties = m_Program.getSession().ProjectGetProperties(ProjectID);
+        int TaskUSerID = m_Program.getSession().TaskGetID(_TaskID);
+
+        StringBuilder Builder = new StringBuilder();
+        Builder.append("Task (ID: ");
+        Builder.append(TaskUSerID);
+        Builder.append(", Project: ");
+        Builder.append(Properties.m_Name);
+        if (_bShowName)
+        {
+            String Description = m_Program.getSession().TaskGetDescription(_TaskID);
+            Builder.append(", Name: ");
+            Builder.append(Description);
+        }
+
+        Builder.append(')');
+        return Builder.toString();
     }
 }

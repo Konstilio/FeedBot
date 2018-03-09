@@ -1,5 +1,9 @@
 package HansoftConnection;
 
+import Shared.SharedState;
+import TelegramPolling.SendBot;
+import org.telegram.telegrambots.api.methods.send.SendMessage;
+import org.telegram.telegrambots.exceptions.TelegramApiException;
 import se.hansoft.hpmsdk.EHPMDataHistoryClientOrigin;
 import se.hansoft.hpmsdk.EHPMError;
 import se.hansoft.hpmsdk.EHPMSdkDebugMode;
@@ -20,12 +24,14 @@ import se.hansoft.hpmsdk.HPMTaskTimeZones;
 import se.hansoft.hpmsdk.HPMTaskTimeZonesZone;
 import se.hansoft.hpmsdk.HPMUniqueID;
 
+import java.util.HashSet;
+
 public class HansoftThread extends Thread {
 
     HPMSdkSession m_Session;
     long m_NextUpdate;
     long m_NextConnectionAttempt;
-    HansoftCallback m_Callback;
+    HansoftCallback m_Callback = null;
     boolean m_bBrokenConnection;
 
     String m_Host;
@@ -34,13 +40,15 @@ public class HansoftThread extends Thread {
     String m_SDK;
     String m_SDKPassword;
 
+    SharedState m_State;
+    SendBot m_SendBot;
+
     public HansoftThread(String _Host, Integer _Port, String _Database, String _SDK, String _Password)
     {
         m_Session = null;
-        m_Callback = new HansoftCallback(this, m_Session);
-        m_Callback.m_Program = this;
         m_NextUpdate = 0;
         m_NextConnectionAttempt = 0;
+        m_Callback = new HansoftCallback(this);
         m_bBrokenConnection = false;
 
         m_Host = _Host;
@@ -48,6 +56,13 @@ public class HansoftThread extends Thread {
         m_Database = _Database;
         m_SDK = _SDK;
         m_SDKPassword = _Password;
+
+        m_SendBot = new SendBot();
+    }
+
+    public void setSharedState(SharedState _State) {
+        m_State = _State;
+        m_SendBot.setSharedState(m_State);
     }
 
     boolean initConnection()
@@ -60,7 +75,7 @@ public class HansoftThread extends Thread {
         {
             m_NextConnectionAttempt = 0;
 
-            EHPMSdkDebugMode debugMode = EHPMSdkDebugMode.Off; // Change to EHPMSdkDebugMode.Debug to get memory leak info and debug output. Note that this is expensive.
+            EHPMSdkDebugMode debugMode = EHPMSdkDebugMode.Debug; // Change to EHPMSdkDebugMode.Debug to get memory leak info and debug output. Note that this is expensive.
 
             try
             {
@@ -91,131 +106,34 @@ public class HansoftThread extends Thread {
     {
         if (initConnection())
         {
-            try
-            {
-                if (m_bBrokenConnection)
-                    return;
-                else
-                {
-                    // Check our stuff
-                    long currentTime = System.currentTimeMillis();
-                    if (currentTime > m_NextUpdate)
-                    {
-                        // Find administrator resource
-
-                        HPMResourceEnum Resources = m_Session.ResourceEnum();
-
-                        HPMUniqueID AdminResourceUID = new HPMUniqueID();
-                        String ResourceToFind = "Administrator";
-                        for (HPMUniqueID ResourceUID : Resources.m_Resources)
-                        {
-                            if (AdminResourceUID.IsValid())
-                                break;
-
-                            HPMResourceProperties ResourceInfo = m_Session.ResourceGetProperties(ResourceUID);
-
-                            if (ResourceInfo.m_Name.equals(ResourceToFind))
-                            {
-                                AdminResourceUID = ResourceUID;
-                            }
-                        }
-
-                        if (AdminResourceUID.IsValid())
-                        {
-                            // Enumerate projects
-                            HPMProjectEnum Projects = m_Session.ProjectEnum();
-                            // Loop through projects
-                            for (HPMUniqueID ProjectUID : Projects.m_Projects)
-                            {
-                                // Enumerate tasks
-                                HPMTaskEnum Tasks = m_Session.TaskEnum(ProjectUID);
-                                HPMProjectProperties ProjectProp = m_Session.ProjectGetProperties(ProjectUID);
-
-                                HPMUniqueID OurTaskID = new HPMUniqueID();
-                                String OurTaskDesc = "HPM SDK Simple Sample Task";
-                                for (HPMUniqueID Task : Tasks.m_Tasks)
-                                {
-                                    if (OurTaskID.IsValid())
-                                        break;
-                                    String Description = m_Session.TaskGetDescription(Task);
-                                    if (Description.equals(OurTaskDesc))
-                                    {
-                                        OurTaskID = Task;
-                                    }
-                                }
-
-                                // Impersonate resource so it looks like this resource made the changes.
-                                // The string in the third argument will be shown in the "Change originates from" column in the change history
-                                m_Session.ResourceImpersonate(AdminResourceUID, EHPMDataHistoryClientOrigin.CustomSDK, m_Session.LocalizationCreateUntranslatedStringFromString("Task updated from Sample_SimpleJava"));
-
-                                if (!OurTaskID.IsValid())
-                                {
-                                    // No old task was found, create a new one
-                                    HPMTaskCreateUnified CreateData = new HPMTaskCreateUnified();
-                                    HPMTaskCreateUnifiedEntry Entry = new HPMTaskCreateUnifiedEntry();
-
-                                    // Set previous to -1 to make it the top task.
-                                    HPMTaskCreateUnifiedReference PrevRefID = new HPMTaskCreateUnifiedReference();
-                                    PrevRefID.m_RefID = new HPMUniqueID();
-                                    HPMTaskCreateUnifiedReference PrevWorkPrioRefID = new HPMTaskCreateUnifiedReference();
-                                    PrevWorkPrioRefID.m_RefID = new HPMUniqueID(-2);
-
-                                    Entry.m_LocalID = new HPMUniqueID(1);
-                                    Entry.m_PreviousRefID = PrevRefID;
-                                    Entry.m_PreviousWorkPrioRefID = PrevWorkPrioRefID;
-                                    CreateData.m_Tasks.add(Entry);
-
-                                    HPMChangeCallbackData_TaskCreateUnified TaskCreateReturn = m_Session.TaskCreateUnifiedBlock(ProjectUID, CreateData);
-
-                                    if (TaskCreateReturn.m_Tasks.size() == 1)
-                                    {
-                                        // The returned is a task ref in the project container. We need the task id not the reference id.
-                                        HPMUniqueID OurTaskRefID = TaskCreateReturn.m_Tasks.get(0).m_TaskRefID;
-                                        OurTaskID = m_Session.TaskRefGetTask(OurTaskRefID);
-                                        m_Session.TaskSetDescription(OurTaskID, OurTaskDesc);
-                                        // When we set fully created the task becomes visible to users.
-                                        m_Session.TaskSetFullyCreated(OurTaskID);
-                                        System.out.println("Successfully created task for project: " + ProjectProp.m_Name + "\r\n");
-                                    }
-                                    else
-                                        System.out.println("The wrong number of tasks were created, aborting\r\n");
-                                }
-
-                                if (OurTaskID.IsValid())
-                                {
-                                    // Set to todays date
-                                    HPMTaskTimeZones Zones = new HPMTaskTimeZones();
-                                    HPMTaskTimeZonesZone Zone = new HPMTaskTimeZonesZone();
-                                    long TruncTimeSeconds = currentTime / 1000;
-                                    TruncTimeSeconds = TruncTimeSeconds * 1000000;
-                                    Zone.m_Start = TruncTimeSeconds; // We must align the time on whole days
-                                    Zone.m_End = Zone.m_Start; // When the end is the same as the start the task is one day long.
-                                    Zones.m_Zones.add(Zone);
-                                    m_Session.TaskSetTimeZones(OurTaskID, Zones, false);
-                                    System.out.println("Successfully updated task for project: " + ProjectProp.m_Name + "\r\n");
-                                }
-                            }
-                        }
-                        else
-                            System.out.println("No administrator user was found, aborting.\r\n");
-
-                        m_NextUpdate = currentTime + 10000; // Check every 10 seconds
-                    }
-                }
-            }
-            catch (HPMSdkException _Error)
-            {
-                System.out.println("Exception in processing loop: " + _Error.ErrorAsStr() + "\r\n");
-            }
-            catch (HPMSdkJavaException _Error)
-            {
-                System.out.println("Exception in processing loop: " + _Error.ErrorAsStr() + "\r\n");
+            if (m_bBrokenConnection) {
+                System.out.println("Connection is broken");
+                m_Callback = null; // #TODO_Boards: Do we need this ?
             }
         }
     }
 
     public void onNewsFeed(String message) {
+        if (m_State == null)
+        {
+            System.out.println("onNewsFeed: State is not set");
+            return;
+        }
 
+        HashSet<Long> Chats = m_State.getChats();
+        for( Long ChatID : Chats) {
+            SendMessage Message = new SendMessage().setChatId(ChatID).setText(message);
+            try {
+                m_SendBot.execute(Message); // Call method to send the message
+            } catch (TelegramApiException e) {
+                System.out.println("onNewsFeed: Failed to send message");
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public HPMSdkSession getSession() {
+        return m_Session;
     }
 
     public void run()

@@ -1,4 +1,5 @@
 import HansoftConnection.HansoftThread;
+import Shared.SharedState;
 import TelegramPolling.LongPollingBot;
 import javax.swing.*;
 
@@ -37,20 +38,24 @@ public class FeedBotMain{
 
     public FeedBotMain() {
         MainFrame Frame = new MainFrame();
-        Frame.setStartHandler(
+        Frame.setUIHandler(
                 new IUIHandler() {
                     public void start(String _BotToken, String _Host, Integer _Port
                             , String _Database, String _SDK, String _SDKPassword) {
-                        LongPollingBot Bot = new LongPollingBot();
-                        Bot.setToken(_BotToken);
+
+                        SharedState State = new SharedState(_BotToken);
+
+                        LongPollingBot bot = new LongPollingBot();
+                        bot.setSharedState(State);
                         m_BotsApi = new TelegramBotsApi();
                         try {
-                            m_Session = m_BotsApi.registerBot(new LongPollingBot());
+                            m_Session = m_BotsApi.registerBot(bot);
                         } catch (TelegramApiException e) {
                             e.printStackTrace();
                         }
 
                         m_Hansoft = new HansoftThread(_Host, _Port, _Database, _SDK, _SDKPassword);
+                        m_Hansoft.setSharedState(State);
                         m_Hansoft.start();
                     }
 

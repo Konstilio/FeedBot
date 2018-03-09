@@ -1,5 +1,6 @@
 package TelegramPolling;
 
+import Shared.SharedState;
 import org.telegram.telegrambots.api.methods.send.SendMessage;
 import org.telegram.telegrambots.api.objects.Update;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -9,25 +10,28 @@ import java.util.List;
 
 public class LongPollingBot extends TelegramLongPollingBot {
 
-    private String m_Token;
+    private SharedState m_State;
 
-    public String getBotToken() {
-        return m_Token;
+    public void setSharedState(SharedState _State) {
+        m_State = _State;
     }
 
-    public void setToken(String _Token) {
-        m_Token = _Token;
+    public String getBotToken() {
+        return m_State.getToken();
     }
 
     public void onUpdateReceived(Update update) {
         if (update.hasMessage() && update.getMessage().hasText()) {
-            SendMessage message = new SendMessage() // Create a SendMessage object with mandatory fields
-                    .setChatId(update.getMessage().getChatId())
-                    .setText(update.getMessage().getText());
-            try {
-                execute(message); // Call method to send the message
-            } catch (TelegramApiException e) {
-                e.printStackTrace();
+
+            String Text = update.getMessage().getText();
+            Long ChatID = update.getMessage().getChatId();
+            if (Text.equals("/start")) {
+                System.out.println("Recieved /start from " + ChatID.toString());
+                m_State.addChat(ChatID);
+            }
+            else if (Text.equals("/end")) {
+                System.out.println("Recieved /end from " + ChatID.toString());
+                m_State.removeChat(ChatID);
             }
         }
     }
