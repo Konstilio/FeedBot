@@ -44,6 +44,7 @@ public class FeedBotMain{
                             , String _Database, String _SDK, String _SDKPassword) {
 
                         SharedState State = new SharedState(_BotToken);
+                        State.loadConfig();
 
                         LongPollingBot bot = new LongPollingBot();
                         bot.setSharedState(State);

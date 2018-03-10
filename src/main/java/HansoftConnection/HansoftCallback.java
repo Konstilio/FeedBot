@@ -27,23 +27,26 @@ class HansoftCallback extends HPMSdkCallbacks {
             if (!m_Program.getSession().TaskGetFullyCreated(_Data.m_TaskID))
                 return;
 
-            // #TODO: Refactor this
-            StringBuilder Builder = new StringBuilder();
-            Builder.append("<b>");
-            Builder.append(GetUserName(_Data.m_ChangedByResourceID));
-            Builder.append("</b>");
-            Builder.append(' ');
-            Builder.append(GetAction(_Data.m_FieldChanged));
-            Builder.append("<b>");
-            Builder.append(GetTaskText(_Data.m_TaskID, IsShowTaskName(_Data.m_FieldChanged)));
-            Builder.append("</b>");
-            Builder.append(' ');
-            Builder.append(GetValuePrefix(_Data.m_FieldChanged));
-            Builder.append("<b>");
-            Builder.append(GetTaskData(_Data.m_TaskID, _Data.m_FieldChanged));
-            Builder.append("</b>");
+            HansoftAction.Task Task = new HansoftAction.Task();
+            Task.m_ID = m_Program.getSession().TaskGetID(_Data.m_TaskID);
+            Task.m_Name = m_Program.getSession().TaskGetDescription(_Data.m_TaskID);
+            String URLSuffix = "Task/" + _Data.m_TaskID.toString();
+            Task.m_Hyperlink = m_Program.getSession().UtilGetHansoftURL(URLSuffix);
+            Task.m_bShowName = IsShowTaskName(_Data.m_FieldChanged);
 
-            m_Program.onNewsFeed(Builder.toString());
+            HansoftAction Action = new HansoftAction();
+            Action.setTask(Task);
+            Action.setUser(GetUserName(_Data.m_ChangedByResourceID));
+            Action.setAction(HansoftAction.EAction.Change);
+
+            HPMUniqueID ProjectID = m_Program.getSession().TaskGetContainer(_Data.m_TaskID);
+            HPMUniqueID RealProjectID = m_Program.getSession().UtilGetRealProjectIDFromProjectID(ProjectID);
+            HPMProjectProperties Properties = m_Program.getSession().ProjectGetProperties(RealProjectID);
+            Action.setProjectName(Properties.m_Name);
+            Action.setFieldName(GetFieldName(_Data.m_FieldChanged));
+            Action.setNewValue(GetTaskData(_Data.m_TaskID, _Data.m_FieldChanged));
+
+            m_Program.onNewsFeed(Action);
 
         } catch (HPMSdkException _Error) {
             System.out.println("HPMSdkException in On_TaskChange: " + _Error.ErrorAsStr());
@@ -84,20 +87,6 @@ class HansoftCallback extends HPMSdkCallbacks {
         HPMResourceProperties UserInfo = m_Program.getSession().ResourceGetProperties(_UsedID);
         return UserInfo.m_Name;
 
-    }
-
-    private String GetAction(EHPMTaskField _Field) throws HPMSdkException, HPMSdkJavaException {
-        if (_Field == EHPMTaskField.Comment)
-            return "commented on ";
-
-        return "changed " + GetFieldName(_Field) + " on ";
-    }
-
-    private String GetValuePrefix(EHPMTaskField _Field) {
-        if (_Field == EHPMTaskField.Comment)
-            return " ";
-
-        return "new value is ";
     }
 
     private String GetFieldName(EHPMTaskField _Field) throws HPMSdkException, HPMSdkJavaException {
@@ -165,26 +154,5 @@ class HansoftCallback extends HPMSdkCallbacks {
                 return "";
 
         }
-    }
-
-    private String GetTaskText(HPMUniqueID _TaskID, boolean _bShowName) throws HPMSdkException, HPMSdkJavaException {
-        HPMUniqueID ProjectID = m_Program.getSession().TaskGetContainer(_TaskID);
-        HPMProjectProperties Properties = m_Program.getSession().ProjectGetProperties(ProjectID);
-        int TaskUSerID = m_Program.getSession().TaskGetID(_TaskID);
-
-        StringBuilder Builder = new StringBuilder();
-        Builder.append("Task (ID: ");
-        Builder.append(TaskUSerID);
-        Builder.append(", Project: ");
-        Builder.append(Properties.m_Name);
-        if (_bShowName)
-        {
-            String Description = m_Program.getSession().TaskGetDescription(_TaskID);
-            Builder.append(", Name: ");
-            Builder.append(Description);
-        }
-
-        Builder.append(')');
-        return Builder.toString();
     }
 }
