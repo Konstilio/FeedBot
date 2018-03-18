@@ -109,6 +109,14 @@ public class HansoftThread extends Thread {
             if (m_bBrokenConnection) {
                 System.out.println("Connection is broken");
                 m_Callback = null; // #TODO_Boards: Do we need this ?
+            } else {
+                try {
+                    m_Callback.Update();
+                } catch (HPMSdkException _Error) {
+                    System.out.println("update HPMSdkException Error: " + _Error.ErrorAsStr());
+                } catch (HPMSdkJavaException _Error) {
+                    System.out.println("update HPMSdkJavaException Error: " + _Error.ErrorAsStr());
+                }
             }
         }
     }

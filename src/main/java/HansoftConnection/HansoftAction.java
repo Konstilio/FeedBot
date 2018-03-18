@@ -7,6 +7,7 @@ public class HansoftAction {
     public enum EAction {
         Change
         , Comment
+        , CommentChange
         , Create
         , Delete
     };
@@ -21,15 +22,14 @@ public class HansoftAction {
             StringBuilder Builder = new StringBuilder();
             Builder.append("Task (ID: ");
             Builder.append(m_ID);
-            Builder.append(", Project: ");
-            if (m_bShowName)
+            if (m_bShowName && !m_Name.isEmpty())
             {
                 Builder.append(", Name: ");
                 Builder.append(m_Name);
             }
 
             if (!m_Hyperlink.isEmpty()) {
-                Builder.append(' ');
+                Builder.append('\n');
                 Builder.append(m_Hyperlink);
             }
 
@@ -107,7 +107,7 @@ public class HansoftAction {
             Builder.append(ActionToOldValuePreffix(m_Action));
             Builder.append("<b>");
             Builder.append(m_OldValue);
-            Builder.append("</b>");
+            Builder.append("</b>\n");
         }
 
         Builder.append(' ');
@@ -122,6 +122,8 @@ public class HansoftAction {
         switch (_Action) {
             case Change:
                 return "changed";
+            case CommentChange:
+                return "edited comment";
             case Create:
                 return "created";
             case Delete:
@@ -136,6 +138,7 @@ public class HansoftAction {
     private static String ActionToNewValuePreffix(EAction _Action) {
         switch (_Action) {
             case Change:
+            case CommentChange:
             case Create:
             case Delete:
                 return "new value is ";
@@ -147,6 +150,7 @@ public class HansoftAction {
     private static String ActionToOldValuePreffix(EAction _Action) {
         switch (_Action) {
             case Change:
+            case CommentChange:
             case Create:
             case Delete:
                 return "old value is ";

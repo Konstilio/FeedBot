@@ -4,9 +4,31 @@ import se.hansoft.hpmsdk.*;
 
 class HansoftCallback extends HPMSdkCallbacks {
     protected HansoftThread m_Program;
+    protected HansoftCommentsCache m_CommentsCache = new HansoftCommentsCache();
+    private boolean m_bSyncComments = true;
 
     HansoftCallback(HansoftThread _Program) {
         m_Program = _Program;
+    }
+
+    // Called from HansoftThreadLoop
+    public void Update() throws HPMSdkException, HPMSdkJavaException {
+
+        if (!m_bSyncComments)
+            return;
+
+        HPMProjectEnum Projects = m_Program.getSession().ProjectEnum();
+        for(HPMUniqueID ProjectID : Projects.m_Projects) {
+            HPMTaskEnum Tasks = m_Program.getSession().TaskEnum(ProjectID);
+            for(HPMUniqueID TaskID : Tasks.m_Tasks) {
+                HPMTaskCommentEnum Comments = m_Program.getSession().TaskEnumComments(TaskID);
+                for (int PostID: Comments.m_Comments) {
+                    String Comment = m_Program.getSession().TaskGetComment(TaskID, PostID).m_MessageText;
+                    m_CommentsCache.SetComment(TaskID, PostID, Comment);
+                }
+            }
+        }
+        m_bSyncComments = false;
     }
 
      @Override
@@ -53,6 +75,59 @@ class HansoftCallback extends HPMSdkCallbacks {
         } catch (HPMSdkJavaException _Error) {
             System.out.println("HPMSdkJavaException in On_TaskChange: " + _Error.ErrorAsStr());
         }
+    }
+
+    @Override
+    public void On_TaskCommentPosted(HPMChangeCallbackData_TaskCommentPosted _Data) {
+
+        try {
+
+            if (!m_Program.getSession().TaskGetFullyCreated(_Data.m_TaskID))
+                return;
+
+            HansoftAction.Task Task = new HansoftAction.Task();
+            Task.m_ID = m_Program.getSession().TaskGetID(_Data.m_TaskID);
+            Task.m_Name = m_Program.getSession().TaskGetDescription(_Data.m_TaskID);
+            String URLSuffix = "Task/" + _Data.m_TaskID.toString();
+            Task.m_Hyperlink = m_Program.getSession().UtilGetHansoftURL(URLSuffix);
+            Task.m_bShowName = true;
+
+            HansoftAction Action = new HansoftAction();
+            Action.setTask(Task);
+            Action.setUser(GetUserName(_Data.m_ChangedByResourceID));
+
+            String OldComment = m_CommentsCache.GetComment(_Data.m_TaskID, _Data.m_PostID);
+
+            if (OldComment != null) {
+                Action.setAction(HansoftAction.EAction.CommentChange);
+                Action.setOldValue(OldComment);
+                Action.setUseOldValue(true);
+            } else {
+                Action.setAction(HansoftAction.EAction.Comment);
+            }
+
+            HPMUniqueID ProjectID = m_Program.getSession().TaskGetContainer(_Data.m_TaskID);
+            HPMUniqueID RealProjectID = m_Program.getSession().UtilGetRealProjectIDFromProjectID(ProjectID);
+            HPMProjectProperties Properties = m_Program.getSession().ProjectGetProperties(RealProjectID);
+            Action.setProjectName(Properties.m_Name);
+
+            String NewComment = m_Program.getSession().TaskGetComment(_Data.m_TaskID, _Data.m_PostID).m_MessageText;
+            m_CommentsCache.SetComment(_Data.m_TaskID, _Data.m_PostID, NewComment);
+            Action.setNewValue(NewComment);
+
+            m_Program.onNewsFeed(Action);
+
+        } catch (HPMSdkException _Error) {
+            System.out.println("HPMSdkException in On_TaskCommentPosted: " + _Error.ErrorAsStr());
+        } catch (HPMSdkJavaException _Error) {
+            System.out.println("HPMSdkJavaException in On_TaskCommentPosted: " + _Error.ErrorAsStr());
+        }
+    }
+
+    @Override
+    public void On_TaskDeleteComment(HPMChangeCallbackData_TaskDeleteComment _Data) {
+        // #TODO: Maybe create action
+        m_CommentsCache.DeleteComment(_Data.m_TaskID, _Data.m_PostID);
     }
 
     private boolean IsAcceptedFiled(EHPMTaskField _Field)
