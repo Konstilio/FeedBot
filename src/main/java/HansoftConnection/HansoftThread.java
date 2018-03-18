@@ -133,12 +133,13 @@ public class HansoftThread extends Thread {
             return;
 
         String message = _Action.toHTML();
+        System.out.println("onNewsFeed: Trying to send message:" + message);
+
         for( Long ChatID : Chats) {
-            SendMessage Message = new SendMessage().setChatId(ChatID).setText(message).setParseMode("html");
+            SendMessage Message = new SendMessage().setChatId(ChatID).setText(message).enableHtml(true);
             try {
                 m_SendBot.execute(Message); // Call method to send the message
             } catch (TelegramApiException e) {
-                System.out.println("onNewsFeed: Failed to send message:" + message);
                 e.printStackTrace();
             }
         }
