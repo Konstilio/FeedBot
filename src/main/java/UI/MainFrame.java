@@ -5,6 +5,8 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class MainFrame {
 
@@ -42,7 +44,38 @@ public class MainFrame {
 
         JButton stopButton = new JButton("Stop");
         frame.getContentPane().add(stopButton);
-        stopButton.addActionListener(
+        stopButton.setEnabled(false);
+
+        JButton startButton = new JButton("Start");
+        frame.getContentPane().add(startButton);
+        startButton.addActionListener(
+                new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+
+                        ExecutorService Executor = Executors.newSingleThreadExecutor();
+                        Executor.submit(() -> {
+                                saveValues( Fields[0].getText(), Fields[1].getText(), Fields[2].getText()
+                                        , Fields[3].getText(), Fields[4].getText());
+
+                                if (m_UIHandler == null)
+                                    return;
+
+                                m_UIHandler.start(
+                                        Fields[0].getText(), Fields[1].getText(), Integer.parseInt(Fields[2].getText())
+                                        , Fields[3].getText(), Fields[4].getText(), Fields[5].getText()
+                                );
+                            }
+
+                        );
+
+                        startButton.setEnabled(false);
+                        stopButton.setEnabled(true);
+                    }
+                }
+        );
+
+        stopButton.addActionListener (
                 new ActionListener() {
                     @Override
                     public void actionPerformed(ActionEvent e) {
@@ -50,26 +83,8 @@ public class MainFrame {
                             return;
 
                         m_UIHandler.stop();
-                    }
-                }
-        )
-        ;
-        JButton startButton = new JButton("Start");
-        frame.getContentPane().add(startButton);
-        startButton.addActionListener(
-                new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        saveValues( Fields[0].getText(), Fields[1].getText(), Fields[2].getText()
-                                , Fields[3].getText(), Fields[4].getText());
-
-                        if (m_UIHandler == null)
-                            return;
-
-                        m_UIHandler.start(
-                                Fields[0].getText(), Fields[1].getText(), Integer.parseInt(Fields[2].getText())
-                                , Fields[3].getText(), Fields[4].getText(), Fields[5].getText()
-                        );
+                        startButton.setEnabled(true);
+                        stopButton.setEnabled(false);
                     }
                 }
         );
