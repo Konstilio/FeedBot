@@ -1,11 +1,12 @@
 package TelegramPolling;
 
+import Shared.ISendBot;
 import Shared.SharedState;
 import org.telegram.telegrambots.api.objects.Update;
 import org.telegram.telegrambots.bots.DefaultAbsSender;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 
-public class SendBot extends TelegramLongPollingBot {
+public class TelegramSendBot extends TelegramLongPollingBot implements ISendBot{
 
     private SharedState m_State;
 
@@ -20,7 +21,7 @@ public class SendBot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-        System.out.println("SendBot should not recieve messages");
+        System.out.println("TelegramSendBot should not recieve messages");
     }
 
     @Override

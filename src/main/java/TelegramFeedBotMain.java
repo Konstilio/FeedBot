@@ -13,7 +13,7 @@ import org.telegram.telegrambots.generics.BotSession;
 /**
  * Created by OleksandrKonstantinov on 2/26/18.
  */
-public class FeedBotMain{
+public class TelegramFeedBotMain {
 
     public static void main(String[] args) {
 
@@ -21,12 +21,12 @@ public class FeedBotMain{
 
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-                new FeedBotMain();
+                new TelegramFeedBotMain();
             }
         });
     }
 
-    public FeedBotMain() {
+    public TelegramFeedBotMain() {
         MainFrame Frame = new MainFrame();
         Frame.setUIHandler(
                 new IUIHandler() {

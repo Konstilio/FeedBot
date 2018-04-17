@@ -1,28 +1,13 @@
 package HansoftConnection;
 
 import Shared.SharedState;
-import TelegramPolling.SendBot;
+import TelegramPolling.TelegramSendBot;
 import org.telegram.telegrambots.api.methods.send.SendMessage;
 import org.telegram.telegrambots.exceptions.TelegramApiException;
-import se.hansoft.hpmsdk.EHPMDataHistoryClientOrigin;
-import se.hansoft.hpmsdk.EHPMError;
 import se.hansoft.hpmsdk.EHPMSdkDebugMode;
-import se.hansoft.hpmsdk.HPMChangeCallbackData_TaskCreateUnified;
-import se.hansoft.hpmsdk.HPMProjectEnum;
-import se.hansoft.hpmsdk.HPMProjectProperties;
-import se.hansoft.hpmsdk.HPMResourceEnum;
-import se.hansoft.hpmsdk.HPMResourceProperties;
-import se.hansoft.hpmsdk.HPMSdkCallbacks;
 import se.hansoft.hpmsdk.HPMSdkException;
 import se.hansoft.hpmsdk.HPMSdkJavaException;
 import se.hansoft.hpmsdk.HPMSdkSession;
-import se.hansoft.hpmsdk.HPMTaskCreateUnified;
-import se.hansoft.hpmsdk.HPMTaskCreateUnifiedEntry;
-import se.hansoft.hpmsdk.HPMTaskCreateUnifiedReference;
-import se.hansoft.hpmsdk.HPMTaskEnum;
-import se.hansoft.hpmsdk.HPMTaskTimeZones;
-import se.hansoft.hpmsdk.HPMTaskTimeZonesZone;
-import se.hansoft.hpmsdk.HPMUniqueID;
 
 import java.util.HashSet;
 
@@ -41,7 +26,7 @@ public class HansoftThread extends Thread {
     String m_SDKPassword;
 
     SharedState m_State;
-    SendBot m_SendBot;
+    TelegramSendBot m_Telegram_SendBot;
 
     public HansoftThread(String _Host, Integer _Port, String _Database, String _SDK, String _Password)
     {
@@ -57,12 +42,12 @@ public class HansoftThread extends Thread {
         m_SDK = _SDK;
         m_SDKPassword = _Password;
 
-        m_SendBot = new SendBot();
+        m_Telegram_SendBot = new TelegramSendBot();
     }
 
     public void setSharedState(SharedState _State) {
         m_State = _State;
-        m_SendBot.setSharedState(m_State);
+        m_Telegram_SendBot.setSharedState(m_State);
     }
 
     boolean initConnection()
@@ -138,7 +123,7 @@ public class HansoftThread extends Thread {
         for( Long ChatID : Chats) {
             SendMessage Message = new SendMessage().setChatId(ChatID).setText(message).enableHtml(true);
             try {
-                m_SendBot.execute(Message); // Call method to send the message
+                m_Telegram_SendBot.execute(Message); // Call method to send the message
             } catch (TelegramApiException e) {
                 e.printStackTrace();
             }
