@@ -1,8 +1,11 @@
+import HansoftConnection.HansoftConnectionSettings;
 import HansoftConnection.HansoftThread;
-import Shared.SharedState;
+import Shared.ISendBot;
+import Shared.SharedTelegramState;
 import TelegramPolling.LongPollingBot;
 import javax.swing.*;
 
+import TelegramPolling.TelegramSendBot;
 import UI.IUIHandler;
 import UI.MainFrame;
 import org.telegram.telegrambots.ApiContextInitializer;
@@ -33,7 +36,7 @@ public class TelegramFeedBotMain {
                     public void start(String _BotToken, String _Host, Integer _Port
                             , String _Database, String _SDK, String _SDKPassword) {
 
-                        SharedState State = new SharedState(_BotToken);
+                        SharedTelegramState State = new SharedTelegramState(_BotToken);
                         State.loadConfig();
 
                         LongPollingBot bot = new LongPollingBot();
@@ -45,8 +48,16 @@ public class TelegramFeedBotMain {
                             e.printStackTrace();
                         }
 
-                        m_Hansoft = new HansoftThread(_Host, _Port, _Database, _SDK, _SDKPassword);
-                        m_Hansoft.setSharedState(State);
+                        HansoftConnectionSettings Settings = new HansoftConnectionSettings();
+                        Settings.m_Host = _Host;
+                        Settings.m_Port = _Port;
+                        Settings.m_Database = _Database;
+                        Settings.m_SDK = _SDK;
+                        Settings.m_SDKPassword = _SDKPassword;
+
+                        m_Hansoft = new HansoftThread(Settings);
+                        ISendBot Bot = new TelegramSendBot(State);
+                        m_Hansoft.setSendBot(Bot);
                         m_Hansoft.start();
                     }
 

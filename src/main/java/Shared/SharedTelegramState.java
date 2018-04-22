@@ -4,12 +4,12 @@ import java.io.*;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 
-public class SharedState {
+public class SharedTelegramState {
 
     private HashSet<Long> m_Chats = new LinkedHashSet<>();
     private String m_Token;
 
-    public SharedState(String _Token) {
+    public SharedTelegramState(String _Token) {
         m_Token = _Token;
     }
 

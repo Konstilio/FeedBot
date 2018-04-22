@@ -1,18 +1,14 @@
 package TelegramPolling;
 
-import Shared.SharedState;
-import org.telegram.telegrambots.api.methods.send.SendMessage;
+import Shared.SharedTelegramState;
 import org.telegram.telegrambots.api.objects.Update;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
-import org.telegram.telegrambots.exceptions.TelegramApiException;
-
-import java.util.List;
 
 public class LongPollingBot extends TelegramLongPollingBot {
 
-    private SharedState m_State;
+    private SharedTelegramState m_State;
 
-    public void setSharedState(SharedState _State) {
+    public void setSharedState(SharedTelegramState _State) {
         m_State = _State;
     }
 

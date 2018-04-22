@@ -1,6 +1,6 @@
 package HansoftConnection;
 
-import Shared.SharedState;
+import Shared.ISendBot;
 import TelegramPolling.TelegramSendBot;
 import org.telegram.telegrambots.api.methods.send.SendMessage;
 import org.telegram.telegrambots.exceptions.TelegramApiException;
@@ -19,16 +19,10 @@ public class HansoftThread extends Thread {
     HansoftCallback m_Callback = null;
     boolean m_bBrokenConnection;
 
-    String m_Host;
-    Integer m_Port;
-    String m_Database;
-    String m_SDK;
-    String m_SDKPassword;
+    HansoftConnectionSettings m_ConnectionSettings;
+    ISendBot m_SendBot = null;
 
-    SharedState m_State;
-    TelegramSendBot m_Telegram_SendBot;
-
-    public HansoftThread(String _Host, Integer _Port, String _Database, String _SDK, String _Password)
+    public HansoftThread(HansoftConnectionSettings _Settings)
     {
         m_Session = null;
         m_NextUpdate = 0;
@@ -36,20 +30,13 @@ public class HansoftThread extends Thread {
         m_Callback = new HansoftCallback(this);
         m_bBrokenConnection = false;
 
-        m_Host = _Host;
-        m_Port = _Port;
-        m_Database = _Database;
-        m_SDK = _SDK;
-        m_SDKPassword = _Password;
+        m_ConnectionSettings = _Settings;
 
-        m_Telegram_SendBot = new TelegramSendBot();
     }
 
-    public void setSharedState(SharedState _State) {
-        m_State = _State;
-        m_Telegram_SendBot.setSharedState(m_State);
+    public void setSendBot(ISendBot _SendBot) {
+        this.m_SendBot = _SendBot;
     }
-
     boolean initConnection()
     {
         if (m_Session != null)
@@ -65,8 +52,23 @@ public class HansoftThread extends Thread {
             try
             {
                 // You should change these parameters to match your development server and the SDK account you have created. For more information see SDK documentation.
-                m_Session = HPMSdkSession.SessionOpen(m_Host, m_Port, m_Database, m_SDK, m_SDKPassword, m_Callback
-                        , null, true, debugMode, 0, "", "./HansoftSDK/Win", null);
+                m_Session = HPMSdkSession.SessionOpen
+                    (
+                        m_ConnectionSettings.m_Host
+                        , m_ConnectionSettings.m_Port
+                        , m_ConnectionSettings.m_Database
+                        , m_ConnectionSettings.m_SDK
+                        , m_ConnectionSettings.m_SDKPassword
+                        , m_Callback
+                        , null
+                        , true
+                        , debugMode
+                        , 0
+                        , ""
+                        , "./HansoftSDK/Win"
+                        , null
+                    )
+                ;
             }
             catch (HPMSdkException _Error)
             {
@@ -107,27 +109,8 @@ public class HansoftThread extends Thread {
     }
 
     public void onNewsFeed(HansoftAction _Action) {
-        if (m_State == null)
-        {
-            System.out.println("onNewsFeed: State is not set");
-            return;
-        }
-
-        HashSet<Long> Chats = m_State.getChats();
-        if (Chats.isEmpty())
-            return;
-
-        String message = _Action.toHTML();
-        System.out.println("onNewsFeed: Trying to send message:" + message);
-
-        for( Long ChatID : Chats) {
-            SendMessage Message = new SendMessage().setChatId(ChatID).setText(message).enableHtml(true);
-            try {
-                m_Telegram_SendBot.execute(Message); // Call method to send the message
-            } catch (TelegramApiException e) {
-                e.printStackTrace();
-            }
-        }
+        if (m_SendBot != null)
+            m_SendBot.sendAction(_Action);
     }
 
     public HPMSdkSession getSession() {
