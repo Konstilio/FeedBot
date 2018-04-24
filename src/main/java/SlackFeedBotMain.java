@@ -1,3 +1,4 @@
+import HansoftConnection.HansoftConnectionSettings;
 import HansoftConnection.HansoftThread;
 
 public class SlackFeedBotMain {
