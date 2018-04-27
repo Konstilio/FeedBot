@@ -1,0 +1,14 @@
+{
+	"Hansoft" : {
+		"host" : "localhost"
+		, "port" : 50255
+		, "Database" : "Dev_24_04"
+		, "SDK" : "SDK"
+		, "SDKPassword" : "hpmadm"
+	}
+	, "Slack" : {
+		"Url" : "https://hooks.slack.com/services/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"
+		, "Channel" : "#random"
+		, "UserName" : "Hansoft"
+	}
+}

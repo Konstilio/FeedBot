@@ -1,5 +1,8 @@
 package HansoftConnection;
 
+import Formatting.HTMLFormatter;
+import Formatting.ITextFormatter;
+import Formatting.SlackFormatter;
 import se.hansoft.hpmsdk.HPMUniqueID;
 
 public class HansoftAction {
@@ -18,8 +21,16 @@ public class HansoftAction {
         public int m_ID = -1;
         public boolean m_bShowName = true;
 
-        public String toString() {
+        public String Format(ITextFormatter _Formatter) {
             StringBuilder Builder = new StringBuilder();
+
+            if (_Formatter.SupportsHyperlinking() && !m_Hyperlink.isEmpty())
+            {
+                Builder.append(_Formatter.OpenTag());
+                Builder.append(m_Hyperlink);
+                Builder.append(_Formatter.HyperlinkSeparator());
+            }
+
             Builder.append("Task (ID: ");
             Builder.append(m_ID);
             if (m_bShowName && !m_Name.isEmpty())
@@ -28,12 +39,18 @@ public class HansoftAction {
                 Builder.append(m_Name);
             }
 
-            if (!m_Hyperlink.isEmpty()) {
+            if (!_Formatter.SupportsHyperlinking() && !m_Hyperlink.isEmpty()) {
                 Builder.append('\n');
                 Builder.append(m_Hyperlink);
             }
 
             Builder.append(')');
+
+            if (_Formatter.SupportsHyperlinking() && !m_Hyperlink.isEmpty())
+            {
+                Builder.append(_Formatter.CloseTag());
+            }
+
             return Builder.toString();
         }
     }
@@ -81,42 +98,13 @@ public class HansoftAction {
     }
 
     public String toHTML() {
-        StringBuilder Builder = new StringBuilder();
-        Builder.append("<i>");
-        Builder.append(m_ProjectName);
-        Builder.append("</i>\n");
-
-        Builder.append("<b>");
-        Builder.append(m_User);
-        Builder.append("</b>");
-
-        Builder.append(' ');
-        Builder.append(ActionToString(m_Action));
-        Builder.append(' ');
-        Builder.append(m_FieldName);
-        if (!m_FieldName.isEmpty())
-            Builder.append(' ');
-        Builder.append("on\n");
-
-        Builder.append("<b>");
-        Builder.append(m_Task.toString());
-        Builder.append("</b>\n");
-
-        if (m_bUseOldValue) {
-            Builder.append(' ');
-            Builder.append(ActionToOldValuePreffix(m_Action));
-            Builder.append("<b>");
-            Builder.append(m_OldValue);
-            Builder.append("</b>\n");
-        }
-
-        Builder.append(' ');
-        Builder.append(ActionToNewValuePreffix(m_Action));
-        Builder.append("<b>");
-        Builder.append(m_NewValue);
-        Builder.append("</b>");
-        return Builder.toString();
+        return Format(new HTMLFormatter());
     }
+
+    public String toSlackMessage() {
+        return Format(new SlackFormatter());
+    }
+
 
     private static String ActionToString(EAction _Action) {
         switch (_Action) {
@@ -157,5 +145,37 @@ public class HansoftAction {
             default:
                 return "";
         }
+    }
+
+    private String Format(ITextFormatter _Formatter) {
+        StringBuilder Builder = new StringBuilder();
+        Builder.append(_Formatter.MakeItalic(m_ProjectName));
+        Builder.append(_Formatter.NewLine());
+
+        Builder.append(_Formatter.MakeBold(m_User));
+
+        Builder.append(' ');
+        Builder.append(ActionToString(m_Action));
+        Builder.append(' ');
+        Builder.append(m_FieldName);
+        if (!m_FieldName.isEmpty())
+            Builder.append(' ');
+        Builder.append("on");
+        Builder.append(_Formatter.NewLine());
+
+        Builder.append(_Formatter.MakeBold(m_Task.Format(_Formatter)));
+        Builder.append(_Formatter.NewLine());
+
+        if (m_bUseOldValue) {
+            Builder.append(' ');
+            Builder.append(ActionToOldValuePreffix(m_Action));
+            Builder.append(_Formatter.MakeBold(m_OldValue));
+            Builder.append(_Formatter.NewLine());
+        }
+
+        Builder.append(' ');
+        Builder.append(ActionToNewValuePreffix(m_Action));
+        Builder.append(_Formatter.MakeBold(m_NewValue));
+        return Builder.toString();
     }
 }

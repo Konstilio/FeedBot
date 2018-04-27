@@ -18,4 +18,15 @@ public class HansoftConnectionSettings {
 
     @JsonProperty("SDKPassword")
     public String m_SDKPassword;
+
+    @Override
+    public String toString() {
+        return "["
+                + "\n\tHost = " + m_Host
+                + "\n\tPort = " + m_Port
+                + "\n\tDatabase = " + m_Database
+                + "\n\tSDK = " + m_SDK
+                + "\n\tSDKPassword = " + m_SDKPassword
+                + "\n]";
+    }
 }

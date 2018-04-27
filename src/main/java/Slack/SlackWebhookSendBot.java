@@ -18,7 +18,7 @@ public class SlackWebhookSendBot implements ISendBot {
 
     @Override
     public void sendAction(HansoftAction _Action) {
-        String Message =  _Action.toHTML();
+        String Message =  _Action.toSlackMessage();
         System.out.println("SlackWebhookSendBot: Trying to send message:" + Message);
 
         Payload SlackPayload = Payload.builder()

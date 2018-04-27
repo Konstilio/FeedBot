@@ -12,4 +12,13 @@ public class SlackIncomingWebhookSettings {
 
     @JsonProperty("UserName")
     public String m_UserName;
+
+    @Override
+    public String toString() {
+        return "["
+                + "\n\tUrl = " + m_Url
+                + "\n\tChannel = " + m_Channel
+                + "\n\tUserName = " + m_UserName
+                + "\n]";
+    }
 }
