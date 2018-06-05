@@ -4,12 +4,24 @@ public class SlackFormatter implements ITextFormatter{
 
     @Override
     public String MakeBold(String text) {
-        return '*' + text + '*';
+        String lines[] = text.split("\\u000D\\u000A|[\\u000A\\u000B\\u000C\\u000D\\u0085\\u2028\\u2029]");
+        StringBuilder Builder = new StringBuilder();
+        for(String line : lines) {
+            Builder.append('*' + line + '*' + '\n');
+        }
+
+        return Builder.toString();
     }
 
     @Override
     public String MakeItalic(String text) {
-        return "_" + text + "_";
+        String lines[] = text.split("\\u000D\\u000A|[\\u000A\\u000B\\u000C\\u000D\\u0085\\u2028\\u2029]");
+        StringBuilder Builder = new StringBuilder();
+        for(String line : lines) {
+            Builder.append('_' + line + '_' + '\n');
+        }
+
+        return Builder.toString();
     }
 
     @Override
