@@ -51,6 +51,7 @@ public class HansoftThread extends Thread {
 
             try
             {
+                String OS = System.getProperty("os.name").toLowerCase();
                 // You should change these parameters to match your development server and the SDK account you have created. For more information see SDK documentation.
                 m_Session = HPMSdkSession.SessionOpen
                     (
@@ -65,7 +66,7 @@ public class HansoftThread extends Thread {
                         , debugMode
                         , 0
                         , ""
-                        , "./HansoftSDK/Win"
+                        , (OS.indexOf("mac") >= 0) ? "./HansoftSDK/OSX" : "./HansoftSDK/Win"
                         , null
                     )
                 ;
